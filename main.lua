@@ -7,7 +7,7 @@ function love.load()
   player.rotation = 0
   player.speed = 0
   player.str = NBSP:rep(1)..'Hello World!'
-  
+
   fire = {}
   fire.str = '>==>'
   fire.onscreen = false
@@ -17,12 +17,11 @@ function love.load()
   fire.speed = 400
 
   explotion = {}
-  explotion.str='O'
   explotion.onscreen = false
   explotion.x = love.graphics.getWidth()/2
   explotion.y = love.graphics.getHeight()/2
   explotion.rotation = 0
-  explotion.frames = 0
+  -- explotion.init = false
   explotion.particles = {}
   for i=0,7 do
     explotion.particles[i] = {}
@@ -48,22 +47,16 @@ function love.draw()
     love.graphics.print(fire.str, fire.x, fire.y, fire.rotation)
   end
   if explotion.onscreen then
-    love.graphics.print(explotion.str, explotion.x, explotion.y, explotion.rotation)
-  end
-  for i=0,7 do
-    if explotion.particles[i].onscreen then
-      love.graphics.print(explotion.particles[i].str, explotion.particles[i].x, explotion.particles[i].y, explotion.particles[i].rotation)
+    for i=0,7 do
+      if explotion.particles[i].onscreen then
+        love.graphics.print(explotion.particles[i].str, explotion.particles[i].x, explotion.particles[i].y, explotion.particles[i].rotation)
+      end
     end
   end
 end
 
 function explode(explotion, dt)
-  explotion.frames = explotion.frames + 1
-  if explotion.frames < 90 then
-    explotion.onscreen = true
-  elseif explotion.frames == 90 then
-    explotion.onscreen = false
-    speed = 500
+  if not explotion.onscreen then
     radians = 0
     for i=0,7 do
       explotion.particles[i].x = explotion.x
@@ -72,35 +65,47 @@ function explode(explotion, dt)
       explotion.particles[i].onscreen = true
       radians = radians+0.785398
     end
-  elseif explotion.frames > 90 then
-    stillOnScreen = false
+    explotion.onscreen = true
+  elseif explotion.onscreen then
+    countOnScreen = 0
     for i=0,7 do
       explotion.particles[i].onscreen = checkOnScreen(explotion.particles[i]);
       if explotion.particles[i].onscreen then
         moveForward(explotion.particles[i] ,dt)
+        countOnScreen = countOnScreen + 1
       end
+    end
+    if countOnScreen == 0 then
+      explotion.init = false
+      explotion.onscreen = false
     end
   end
 end
 
 function handleFireControl(fire, player, dt)
   if love.keyboard.isDown("space") and not fire.onscreen then
-    fire.onscreen = true
-    fire.x = player.x + math.cos(player.rotation)*60
-    fire.y = player.y + math.sin(player.rotation)*60
-    fire.rotation = player.rotation
+      fire.onscreen = true
+      fire.x = player.x + math.cos(player.rotation)*60
+      fire.y = player.y + math.sin(player.rotation)*60
+      fire.rotation = player.rotation
+  end
+  if love.keyboard.isDown("space") and fire.onscreen and not explotion.onscreen and distance(fire.x,fire.y,player.x,player.y) > 100 then
+    fire.onscreen = false
+    explotion.x = fire.x
+    explotion.y = fire.y
+    explode(explotion, dt)
   end
   if fire.onscreen then
     moveForward(fire,dt)
     fire.onscreen = checkOnScreen(fire)
   end
-  if love.keyboard.isDown("return") then
-    fire.onscreen = false
-    explotion.x = fire.x
-    explotion.y = fire.y
-    explotion.frames = 0;
+  if explotion.onscreen then
     explode(explotion, dt)
   end
+end
+
+function distance(x1,y1,x2,y2)
+  return math.sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2) 
 end
 
 function checkOnScreen(character)
